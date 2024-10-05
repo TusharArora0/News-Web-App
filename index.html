@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News App</title>
+    <link rel="stylesheet" href="styles.css">  
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+   <nav>
+    <div class="nav-left">
+        <img src="logo.png" alt="logo" class="logo">
+    </div>
+    <div class="nav-right">
+        <button id="menu-toggle" class="menu-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        <ul id="nav-menu">
+            <li data-category="all">All</li>
+            <li data-category="business">Business</li>
+            <li data-category="technology">Technology</li>
+            <li data-category="sports">Sports</li>
+            <li data-category="entertainment">Entertainment</li>
+        </ul>
+        <input type="text" id="search-input" placeholder="Search news...">
+        <button id="search-button">🔍</button>
+        <button id="theme-switcher">🌙</button>
+    </div>
+   </nav>   
+   <div class="container">
+    <h1>Latest News</h1>
+    <div id="news-container"></div>
+    <button id="load-more">Load More</button>
+   </div>
+   <button id="scroll-to-top" title="Go to top">↑</button>
+   <script>
+    let currentCategory = 'all';
+    let isDarkTheme = false;
+    let currentPage = 1;
+    const pageSize = 10;
+
+    async function fetchNews(category = 'all') {
+        try {
+            const url = category === 'all'
+                ? 'https://newsapi.org/v2/top-headlines?country=us&apiKey=f908798d6d8848c7a96f4b29cff25cf6'
+                : `https://newsapi.org/v2/top-headlines?country=us&category=${category}&apiKey=f908798d6d8848c7a96f4b29cff25cf6`;
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.articles;
+        } catch (error) {
+            console.error('Error fetching news:', error);
+            return [];
+        }
+    }
+
+    async function searchNews(query) {
+        try {
+            const url = `https://newsapi.org/v2/everything?q=${query}&apiKey=f908798d6d8848c7a96f4b29cff25cf6&pageSize=${pageSize}&page=${currentPage}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.articles;
+        } catch (error) {
+            console.error('Error searching news:', error);
+            return [];
+        }
+    }
+
+    function displayNews(articles) {
+        const newsContainer = document.getElementById('news-container');
+        if (currentPage === 1) {
+            newsContainer.innerHTML = ''; // Clear existing news items only on first page
+        }
+        articles.forEach(article => {
+            const newsDiv = document.createElement('div');
+            newsDiv.className = 'news-item';
+            newsDiv.innerHTML = `
+                <img src="${article.urlToImage || 'placeholder.jpg'}" alt="${article.title}">
+                <h2>${article.title}</h2>
+                <p>${article.description}</p>
+                <a href="${article.url}" target="_blank">Read More</a>
+            `;
+            newsContainer.appendChild(newsDiv);
+        });
+    }
+
+    async function updateNews(category) {
+        currentCategory = category;
+        currentPage = 1;
+        const articles = await fetchNews(category);
+        displayNews(articles);
+        updateLoadMoreButton();
+    }
+
+    function toggleTheme() {
+        isDarkTheme = !isDarkTheme;
+        document.body.classList.toggle('dark-theme', isDarkTheme);
+        const themeSwitcher = document.getElementById('theme-switcher');
+        themeSwitcher.textContent = isDarkTheme ? '☀️' : '🌙';
+    }
+
+    function setupThemeSwitcher() {
+        const themeSwitcher = document.getElementById('theme-switcher');
+        themeSwitcher.addEventListener('click', toggleTheme);
+    }
+
+    function setupCategoryListeners() {
+        const categoryItems = document.querySelectorAll('.nav-right ul li');
+        categoryItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const category = item.getAttribute('data-category');
+                updateNews(category);
+            });
+        });
+    }
+
+    function setupSearchFunctionality() {
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+
+        searchButton.addEventListener('click', async () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                currentPage = 1;
+                const articles = await searchNews(query);
+                displayNews(articles);
+                updateLoadMoreButton();
+            }
+        });
+
+        searchInput.addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                const query = searchInput.value.trim();
+                if (query) {
+                    currentPage = 1;
+                    const articles = await searchNews(query);
+                    displayNews(articles);
+                    updateLoadMoreButton();
+                }
+            }
+        });
+    }
+
+    function setupLoadMoreButton() {
+        const loadMoreButton = document.getElementById('load-more');
+        loadMoreButton.addEventListener('click', async () => {
+            currentPage++;
+            let articles;
+            if (currentCategory === 'search') {
+                const query = document.getElementById('search-input').value.trim();
+                articles = await searchNews(query);
+            } else {
+                articles = await fetchNews(currentCategory);
+            }
+            displayNews(articles);
+            updateLoadMoreButton();
+        });
+    }
+
+    function updateLoadMoreButton() {
+        const loadMoreButton = document.getElementById('load-more');
+        loadMoreButton.style.display = 'block';
+    }
+
+    function setupScrollToTop() {
+        const scrollToTopButton = document.getElementById('scroll-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                scrollToTopButton.style.display = 'block';
+            } else {
+                scrollToTopButton.style.display = 'none';
+            }
+        });
+
+        scrollToTopButton.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    }
+
+    function setupMobileMenu() {
+        const menuToggle = document.getElementById('menu-toggle');
+        const navMenu = document.getElementById('nav-menu');
+
+        menuToggle.addEventListener('click', () => {
+            navMenu.classList.toggle('show');
+        });
+
+        // Close menu when a category is selected
+        navMenu.addEventListener('click', (e) => {
+            if (e.target.tagName === 'LI') {
+                navMenu.classList.remove('show');
+            }
+        });
+    }
+
+    async function init() {
+        setupCategoryListeners();
+        setupThemeSwitcher();
+        setupSearchFunctionality();
+        setupLoadMoreButton();
+        setupScrollToTop();
+        setupMobileMenu();
+        await updateNews('all');
+    }
+
+    init();
+   </script>
+</body>
+</html>
