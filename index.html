@@ -43,9 +43,10 @@
     async function fetchNews(category = 'all') {
         try {
             const url = category === 'all'
-                ? 'https://newsapi.org/v2/top-headlines?country=us&apiKey=f908798d6d8848c7a96f4b29cff25cf6'
+                ? `https://newsapi.org/v2/top-headlines?country=us&apiKey=f908798d6d8848c7a96f4b29cff25cf6`
                 : `https://newsapi.org/v2/top-headlines?country=us&category=${category}&apiKey=f908798d6d8848c7a96f4b29cff25cf6`;
             const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
             const data = await response.json();
             return data.articles;
         } catch (error) {
@@ -58,6 +59,7 @@
         try {
             const url = `https://newsapi.org/v2/everything?q=${query}&apiKey=f908798d6d8848c7a96f4b29cff25cf6&pageSize=${pageSize}&page=${currentPage}`;
             const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
             const data = await response.json();
             return data.articles;
         } catch (error) {
@@ -67,6 +69,10 @@
     }
 
     function displayNews(articles) {
+        if (!articles || articles.length === 0) {
+            console.error('No articles found');
+            return;
+        }
         const newsContainer = document.getElementById('news-container');
         if (currentPage === 1) {
             newsContainer.innerHTML = ''; // Clear existing news items only on first page
